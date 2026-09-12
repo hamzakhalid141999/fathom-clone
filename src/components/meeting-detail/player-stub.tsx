@@ -39,7 +39,7 @@ export function PlayerStub() {
   }
 
   return (
-    <div className="shrink-0 bg-bg-elevated">
+    <div className="shrink-0 bg-bg">
       <div className="flex items-center justify-center gap-6 px-4 py-5">
         <button
           type="button"

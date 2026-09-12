@@ -33,7 +33,7 @@ export function SummaryPanel({ meeting }: { meeting: Meeting }) {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-bg-surface px-2.5 py-1.5 text-xs text-text-muted transition hover:bg-bg-hover hover:text-text"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-bg-elevated px-2.5 py-1.5 text-xs text-text-muted transition hover:bg-bg-hover hover:text-text"
           >
             <Send className="h-3.5 w-3.5" />
             Send to...
@@ -287,7 +287,7 @@ function CopySummaryButton({ template }: { template: SummaryTemplate }) {
       type="button"
       onClick={copy}
       aria-label="Copy summary"
-      className="rounded-lg bg-bg-surface p-1.5 text-text-muted transition hover:bg-bg-hover hover:text-text"
+      className="rounded-lg bg-bg-elevated p-1.5 text-text-muted transition hover:bg-bg-hover hover:text-text"
     >
       {copied ? (
         <Check className="h-3.5 w-3.5 text-success" />

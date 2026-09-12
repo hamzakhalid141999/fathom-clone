@@ -18,7 +18,7 @@ export default async function MeetingDetailPage({
   if (!meeting) notFound();
 
   return (
-    <AppShell showAskPanel={false} scrollMain={false}>
+    <AppShell showAskPanel={false} scrollMain={false} showChrome={false}>
       {/* MeetingDetail reads search params, so it needs its own boundary. */}
       <Suspense fallback={null}>
         <MeetingDetail meeting={meeting} />

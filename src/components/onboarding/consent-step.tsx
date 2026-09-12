@@ -29,6 +29,7 @@ const PERMISSIONS = [
 
 export function ConsentStep({ onNext }: { onNext: () => void }) {
   const [granted, setGranted] = useState<Record<string, boolean>>({});
+  const allGranted = PERMISSIONS.every((permission) => granted[permission.id]);
 
   return (
     <OnboardingPanel>
@@ -90,11 +91,22 @@ export function ConsentStep({ onNext }: { onNext: () => void }) {
         </div>
 
         <Row>
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex items-center justify-end gap-3">
+            {!allGranted ? (
+              <p className="text-[12px] text-[#7a7a7a]">
+                Enable all permissions to continue
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={onNext}
-              className="rounded-full bg-[#00c0fb] px-5 py-2 text-[13.5px] font-semibold text-[#04121c] transition-colors hover:bg-[#3fd0ff]"
+              disabled={!allGranted}
+              className={cn(
+                "rounded-full px-5 py-2 text-[13.5px] font-semibold transition-colors",
+                allGranted
+                  ? "bg-[#00c0fb] text-[#04121c] hover:bg-[#3fd0ff]"
+                  : "cursor-not-allowed bg-[#1c1c1c] text-[#5a5a5a]"
+              )}
             >
               Next
             </button>

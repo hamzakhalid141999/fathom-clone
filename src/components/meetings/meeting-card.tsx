@@ -1,6 +1,6 @@
 "use client";
 
-import { CardMenuPortal } from "@/components/meetings/card-menu-portal";
+import { MeetingCardMenu } from "@/components/meetings/meeting-card-menu";
 import { folderPathLabel } from "@/lib/folder-label";
 import { formatDurationMins } from "@/lib/format";
 import { useLibrary } from "@/lib/library-context";
@@ -10,58 +10,93 @@ import { Eye, EyeOff, Folder, MoreVertical, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 export function MeetingCard({ meeting }: { meeting: Meeting }) {
   const router = useRouter();
   const menuButtonId = useId();
-  const { getMeetingUi, getFoldersForMeeting, togglePrivate, isDeleted } =
-    useLibrary();
+  const {
+    getMeetingUi,
+    getFoldersForMeeting,
+    togglePrivate,
+    isDeleted,
+    setMeetingTitle,
+  } = useLibrary();
   const [menuOpen, setMenuOpen] = useState(false);
-  const cardRef = useRef<HTMLElement>(null);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(meeting.title);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-
-  if (isDeleted(meeting.id)) return null;
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const ui = getMeetingUi(meeting.id);
   const folders = getFoldersForMeeting(meeting.id);
   const active = menuOpen;
+  const displayTitle = ui.customTitle?.trim() || meeting.title;
+
+  useEffect(() => {
+    if (!editingTitle) setTitleDraft(displayTitle);
+  }, [displayTitle, editingTitle]);
+
+  useEffect(() => {
+    if (!editingTitle) return;
+    const input = titleInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, [editingTitle]);
+
+  if (isDeleted(meeting.id)) return null;
+
+  function commitTitle() {
+    const next = titleDraft.trim() || meeting.title;
+    setMeetingTitle(meeting.id, next === meeting.title ? "" : next);
+    setEditingTitle(false);
+  }
+
+  function cancelTitleEdit() {
+    setTitleDraft(displayTitle);
+    setEditingTitle(false);
+  }
 
   return (
     <article
-      ref={cardRef}
       className={cn(
-        "group relative w-full origin-center",
+        "group relative w-full origin-center overflow-visible",
         "transition-transform duration-300 ease-out will-change-transform",
-        "hover:z-30 hover:scale-[1.08]",
-        active && "z-30 scale-[1.08]"
+        "hover:z-40 hover:scale-[1.08]",
+        (active || editingTitle) && "z-40 scale-[1.08]"
       )}
     >
       <div
         role="link"
         tabIndex={0}
         onClick={() => {
-          if (!menuOpen) router.push(`/meetings/${meeting.id}`);
+          if (!menuOpen && !editingTitle) router.push(`/meetings/${meeting.id}`);
         }}
         onKeyDown={(e) => {
-          if ((e.key === "Enter" || e.key === " ") && !menuOpen) {
+          if (
+            (e.key === "Enter" || e.key === " ") &&
+            !menuOpen &&
+            !editingTitle
+          ) {
             e.preventDefault();
             router.push(`/meetings/${meeting.id}`);
           }
         }}
         className={cn(
-          "block cursor-pointer overflow-hidden rounded-xl outline-none transition-[background-color,box-shadow] duration-200",
+          "block cursor-pointer rounded-xl outline-none transition-[background-color,box-shadow] duration-200",
           "bg-transparent group-hover:bg-[#1a1a1e] group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]",
-          active && "bg-[#1a1a1e] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+          (active || editingTitle) &&
+            "bg-[#1a1a1e] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
         )}
       >
-        <div className="relative aspect-[16/10] overflow-hidden bg-[#2a1a18]">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-[15px] bg-[#2a1a18]">
           <Image
             src="/assets/placeholders/audio_only.png"
             alt=""
             fill
             sizes="(max-width: 768px) 100vw, 280px"
-            className="object-cover rounded-[10px]"
+            className="rounded-[15px] object-cover"
           />
 
           <button
@@ -102,20 +137,52 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
             "flex min-h-[52px] items-start gap-2 px-1 py-2.5",
             "transition-[padding] duration-200 ease-out",
             "group-hover:px-4 group-hover:py-3",
-            active && "px-4 py-3"
+            (active || editingTitle) && "px-4 py-3"
           )}
         >
           <div className="min-w-0 flex-1 pt-0.5">
-            <p
-              className={cn(
-                "truncate text-sm font-medium text-text transition-colors duration-200",
-                "group-hover:text-white group-hover:underline group-hover:decoration-dotted group-hover:decoration-white/35 group-hover:underline-offset-4",
-                active &&
-                "text-white underline decoration-dotted decoration-white/35 underline-offset-4"
-              )}
-            >
-              {meeting.title}
-            </p>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onBlur={commitTitle}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitTitle();
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancelTitleEdit();
+                  }
+                }}
+                aria-label="Edit meeting title"
+                className="w-full rounded-md border border-accent bg-bg-input px-2 py-0.5 text-sm font-medium text-white outline-none"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setTitleDraft(displayTitle);
+                  setEditingTitle(true);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className={cn(
+                  "max-w-full truncate text-left text-sm font-medium text-text transition-colors duration-200",
+                  "hover:text-white hover:underline hover:decoration-dotted hover:decoration-white/50 hover:underline-offset-4",
+                  "group-hover:text-white",
+                  active && "text-white"
+                )}
+              >
+                {displayTitle}
+              </button>
+            )}
             {folders.length > 0 ? (
               <Link
                 href={`/folders/${folders[0].id}`}
@@ -131,40 +198,50 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
             ) : null}
           </div>
 
-          <button
-            ref={menuButtonRef}
-            id={menuButtonId}
-            type="button"
-            aria-label="Meeting actions"
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-            onMouseDown={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-            }}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setMenuOpen((open) => !open);
-            }}
-            className={cn(
-              "shrink-0 rounded-md p-1 text-text-muted transition-opacity duration-200 ease-out hover:text-text",
-              "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
-              active && "opacity-100 pointer-events-auto bg-accent text-white"
-            )}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </button>
+          {/* Menu is absolutely positioned to this button wrapper. */}
+          <div className="relative shrink-0">
+            <button
+              ref={menuButtonRef}
+              id={menuButtonId}
+              type="button"
+              aria-label="Meeting actions"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setMenuOpen((open) => !open);
+              }}
+              className={cn(
+                "rounded-md p-1 text-text-muted transition-opacity duration-200 ease-out hover:text-text",
+                "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
+                active && "opacity-100 pointer-events-auto bg-bg-elevated text-white"
+              )}
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+
+            {menuOpen ? (
+              <div
+                className="absolute left-full top-0 z-[100] ml-1"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MeetingCardMenu
+                  meetingId={meeting.id}
+                  open
+                  onClose={() => setMenuOpen(false)}
+                  ignoreCloseRef={menuButtonRef}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
-
-      {menuOpen ? (
-        <CardMenuPortal
-          meetingId={meeting.id}
-          menuButtonRef={menuButtonRef}
-          onClose={() => setMenuOpen(false)}
-        />
-      ) : null}
     </article>
   );
 }

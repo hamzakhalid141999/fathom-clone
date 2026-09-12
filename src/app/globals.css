@@ -2,17 +2,17 @@
 
 :root {
   /* Fathom-inspired dark premium palette */
-  --bg: #0e0e10;
-  --bg-elevated: #141416;
+  --bg: #1A1A1A;
+  --bg-elevated: #212124;
   --bg-surface: #1a1a1e;
   --bg-hover: #222228;
   --bg-input: #1c1c20;
-  --border: #2a2a30;
+  --border: #34343A;
   --border-subtle: #232328;
   --text: #f4f4f5;
   --text-muted: #a1a1aa;
   --text-faint: #71717a;
-  --accent: #00a3ff;
+  --accent: #0DBEFF;
   --accent-soft: rgba(0, 163, 255, 0.15);
   --accent-strong: #38bdf8;
   --success: #34d399;

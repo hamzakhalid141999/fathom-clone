@@ -24,7 +24,7 @@ export function SubNav() {
   const openFolder = openFolderId ? getFolderById(openFolderId) : undefined;
 
   return (
-    <nav className="flex h-11 shrink-0 items-center gap-6 border-b border-border-subtle bg-bg-elevated px-6">
+    <nav className="flex h-11 shrink-0 items-center gap-6 border-b border-border-subtle bg-bg-elevated px-6 shadow-2xl shadow-black/50">
       {tabs.map((tab) => {
         const active =
           tab.href === "/meetings"

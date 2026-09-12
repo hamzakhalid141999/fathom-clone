@@ -21,4 +21,6 @@ export interface MeetingUiState {
   meetingType?: MeetingType;
   isPrivate: boolean;
   deleted: boolean;
+  /** Optional override for the seed meeting title. */
+  customTitle?: string;
 }

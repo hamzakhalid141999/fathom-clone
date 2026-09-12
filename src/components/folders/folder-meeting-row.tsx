@@ -1,6 +1,6 @@
 "use client";
 
-import { CardMenuPortal } from "@/components/meetings/card-menu-portal";
+import { MeetingCardMenu } from "@/components/meetings/meeting-card-menu";
 import { folderPathLabel } from "@/lib/folder-label";
 import { formatDurationMins, formatShortDate } from "@/lib/format";
 import { useLibrary } from "@/lib/library-context";
@@ -10,7 +10,8 @@ import { Folder, MoreVertical, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function FolderMeetingRow({
   meeting,
@@ -20,15 +21,44 @@ export function FolderMeetingRow({
   folderId: string;
 }) {
   const router = useRouter();
-  const { getFoldersForMeeting } = useLibrary();
+  const { getFoldersForMeeting, getMeetingUi } = useLibrary();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const folders = getFoldersForMeeting(meeting.id);
+  const displayTitle =
+    getMeetingUi(meeting.id).customTitle?.trim() || meeting.title;
   const owner = meeting.participants[0]?.name ?? "Unknown";
 
+  // Fixed portal so the menu can paint over Ask Fathom (sibling of the list)
+  // and isn't clipped by the list's overflow-y-auto.
+  useEffect(() => {
+    if (!menuOpen) {
+      setMenuPos(null);
+      return;
+    }
+
+    function place() {
+      const btn = menuButtonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      setMenuPos({ top: rect.top, left: rect.right + 4 });
+    }
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [menuOpen]);
+
   return (
-    <div className="relative">
+    <div className={cn("relative", menuOpen && "z-50")}>
       <div
         role="link"
         tabIndex={0}
@@ -41,7 +71,7 @@ export function FolderMeetingRow({
             router.push(`/meetings/${meeting.id}`);
           }
         }}
-        className="flex cursor-pointer gap-4 rounded-xl bg-bg-surface p-3 outline-none transition-colors hover:bg-[#1f1f24]"
+        className="flex cursor-pointer gap-4 bg-bg-elevated rounded-xl p-3 outline-none transition-colors hover:bg-[#29292e]"
       >
         <div className="relative h-[98px] w-[172px] shrink-0 overflow-hidden rounded-lg bg-[#2a1a18]">
           <Image
@@ -59,8 +89,9 @@ export function FolderMeetingRow({
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-2">
             <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-text">
-              {meeting.title}
+              {displayTitle}
             </p>
+
             <button
               ref={menuButtonRef}
               type="button"
@@ -113,14 +144,25 @@ export function FolderMeetingRow({
         </div>
       </div>
 
-      {menuOpen ? (
-        <CardMenuPortal
-          meetingId={meeting.id}
-          menuButtonRef={menuButtonRef}
-          onClose={() => setMenuOpen(false)}
-          folderId={folderId}
-        />
-      ) : null}
+      {menuOpen && menuPos
+        ? createPortal(
+            <div
+              className="fixed z-[200]"
+              style={{ top: menuPos.top, left: menuPos.left }}
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MeetingCardMenu
+                meetingId={meeting.id}
+                open
+                onClose={() => setMenuOpen(false)}
+                ignoreCloseRef={menuButtonRef}
+                folderId={folderId}
+              />
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

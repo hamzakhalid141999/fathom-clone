@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
+  Download,
   FolderMinus,
   FolderPlus,
   Link2,
@@ -16,6 +17,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 type MenuView = "main" | "folders" | "create-folder" | "meeting-type";
+type MenuVariant = "card" | "detail";
+type MenuBeak = "left" | "top";
 
 const MEETING_TYPES: MeetingType[] = [
   "Customer Call",
@@ -31,6 +34,8 @@ export function MeetingCardMenu({
   onClose,
   ignoreCloseRef,
   folderId,
+  variant = "card",
+  beak = "left",
 }: {
   meetingId: string;
   open: boolean;
@@ -38,6 +43,10 @@ export function MeetingCardMenu({
   ignoreCloseRef?: React.RefObject<HTMLElement | null>;
   /** Set when the menu is opened from inside a folder, which adds Remove from Folder. */
   folderId?: string;
+  /** Detail page only shows Download Audio + Delete Recording. */
+  variant?: MenuVariant;
+  /** Arrow direction toward the trigger. */
+  beak?: MenuBeak;
 }) {
   const {
     folders,
@@ -124,22 +133,55 @@ export function MeetingCardMenu({
     onClose();
   }
 
+  function downloadAudio() {
+    const blob = new Blob([""], { type: "audio/mpeg" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `recording-${meetingId}.mp3`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    onClose();
+  }
+
   if (!open) return null;
 
   return (
     <motion.div
       ref={menuRef}
-      initial={{ opacity: 0, scale: 0.96, x: -4 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.96, x: -4 }}
+      initial={{ opacity: 0, scale: 0.96, ...(beak === "left" ? { x: -6 } : { y: -6 }) }}
+      animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+      exit={{ opacity: 0, scale: 0.96, ...(beak === "left" ? { x: -6 } : { y: -6 }) }}
       transition={{ duration: 0.16, ease: "easeOut" }}
       className="relative w-[300px] rounded-xl border border-border bg-[#1a1a1e] py-1.5 shadow-2xl shadow-black/50"
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {/* beak */}
-      <span className="absolute -top-1.5 right-6 h-3 w-3 rotate-45 border-l border-t border-border bg-[#1a1a1e]" />
+      {beak === "left" ? (
+        <span className="absolute -left-1.5 top-3 h-3 w-3 rotate-45 border-b border-l border-border bg-[#1a1a1e]" />
+      ) : (
+        <span className="absolute -top-1.5 right-3 h-3 w-3 rotate-45 border-l border-t border-border bg-[#1a1a1e]" />
+      )}
 
+      {variant === "detail" ? (
+        <div className="flex flex-col">
+          <MenuRow
+            icon={<Download className="h-4 w-4" />}
+            title="Download Audio"
+            subtitle="Save the recording audio file"
+            onClick={downloadAudio}
+          />
+          <MenuRow
+            icon={<Trash2 className="h-4 w-4" />}
+            title="Delete Recording"
+            danger
+            onClick={() => {
+              deleteMeeting(meetingId);
+              onClose();
+            }}
+          />
+        </div>
+      ) : (
       <AnimatePresence mode="wait" initial={false}>
         {view === "main" && (
           <motion.div
@@ -329,6 +371,7 @@ export function MeetingCardMenu({
           </motion.div>
         )}
       </AnimatePresence>
+      )}
     </motion.div>
   );
 }

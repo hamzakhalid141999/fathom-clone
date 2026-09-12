@@ -4,7 +4,7 @@ import { formatTimestamp, initials } from "@/lib/format";
 import { usePlayback } from "@/lib/playback-context";
 import type { TranscriptComment } from "@/lib/types/meeting";
 import { motion } from "framer-motion";
-import { ArrowUp, MessageSquare, Play, UserCircle2 } from "lucide-react";
+import { ArrowUp, Play, UserCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 /** Inline "Leave a comment" composer shown when hovering a transcript line. */
@@ -35,7 +35,7 @@ export function CommentComposer({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.14 }}
-      className="flex w-[270px] items-center gap-2 rounded-xl border border-border bg-[#1a1a1e] px-3 py-2 shadow-2xl shadow-black/50"
+      className="flex w-[270px] items-center gap-2 rounded-xl border border-border bg-[#1a1a1e] px-3 py-2"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <UserCircle2 className="h-4 w-4 shrink-0 text-text-faint" />
@@ -69,12 +69,19 @@ export function CommentComposer({
 export function CommentThread({
   comments,
   onReply,
+  onDismiss,
 }: {
   comments: TranscriptComment[];
   onReply: (text: string) => void;
+  onDismiss?: () => void;
 }) {
   const { seek, play } = usePlayback();
   const [reply, setReply] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   return (
     <motion.div
@@ -82,7 +89,7 @@ export function CommentThread({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.14 }}
-      className="w-[270px] rounded-xl border border-border bg-[#1a1a1e] px-3 py-2.5 shadow-2xl shadow-black/50"
+      className="w-[270px] rounded-xl border border-border bg-bg-elevated px-3 py-2.5"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="space-y-3">
@@ -113,6 +120,7 @@ export function CommentThread({
       </div>
 
       <input
+        ref={inputRef}
         value={reply}
         onChange={(e) => setReply(e.target.value)}
         onKeyDown={(e) => {
@@ -121,19 +129,11 @@ export function CommentThread({
             onReply(reply.trim());
             setReply("");
           }
+          if (e.key === "Escape") onDismiss?.();
         }}
         placeholder="Reply..."
         className="mt-3 w-full border-t border-border-subtle bg-transparent pt-2 text-sm text-text placeholder:text-text-faint outline-none"
       />
     </motion.div>
-  );
-}
-
-export function CommentCountBadge({ count }: { count: number }) {
-  return (
-    <span className="inline-flex items-center gap-1 text-xs text-text-muted">
-      <MessageSquare className="h-3.5 w-3.5" />
-      {count}
-    </span>
   );
 }

@@ -30,6 +30,7 @@ type LibraryContextValue = {
   deleteFolder: (folderId: string) => void;
   setFolderVisibility: (folderId: string, visibility: FolderVisibility) => void;
   setMeetingType: (meetingId: string, meetingType: MeetingType) => void;
+  setMeetingTitle: (meetingId: string, title: string) => void;
   togglePrivate: (meetingId: string) => void;
   deleteMeeting: (meetingId: string) => void;
   isDeleted: (meetingId: string) => boolean;
@@ -204,6 +205,24 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setMeetingTitle = useCallback((meetingId: string, title: string) => {
+    const trimmed = title.trim();
+    setMeetingUi((prev) => {
+      const current = prev[meetingId] ?? defaultUi;
+      if (!trimmed) {
+        if (!current.customTitle) return prev;
+        const next = { ...current };
+        delete next.customTitle;
+        return { ...prev, [meetingId]: next };
+      }
+      if (current.customTitle === trimmed) return prev;
+      return {
+        ...prev,
+        [meetingId]: { ...current, customTitle: trimmed },
+      };
+    });
+  }, []);
+
   const togglePrivate = useCallback((meetingId: string) => {
     setMeetingUi((prev) => {
       const current = prev[meetingId] ?? defaultUi;
@@ -254,6 +273,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       deleteFolder,
       setFolderVisibility,
       setMeetingType,
+      setMeetingTitle,
       togglePrivate,
       deleteMeeting,
       isDeleted,
@@ -271,6 +291,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       deleteFolder,
       setFolderVisibility,
       setMeetingType,
+      setMeetingTitle,
       togglePrivate,
       deleteMeeting,
       isDeleted,

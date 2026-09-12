@@ -114,8 +114,8 @@ function FolderContent({ folderId }: { folderId: string }) {
         </div>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        <div className="min-w-0 flex-1 overflow-y-auto px-6 pb-10">
+      <div className="relative flex min-h-0 flex-1">
+        <div className="relative z-20 min-w-0 flex-1 overflow-y-auto px-6 pb-10 border-t border-border pt-4">
           {groups.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border bg-bg-surface px-6 py-16 text-center">
               <p className="text-sm font-medium text-text">This folder is empty</p>

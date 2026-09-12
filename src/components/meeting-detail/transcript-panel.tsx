@@ -6,7 +6,6 @@ import {
 } from "@/components/meeting-detail/clip-toolbar";
 import {
   CommentComposer,
-  CommentCountBadge,
   CommentThread,
 } from "@/components/meeting-detail/transcript-comments";
 import { formatTimestamp, initials } from "@/lib/format";
@@ -108,6 +107,31 @@ export function TranscriptPanel({
       window.clearTimeout(timer);
     };
   }, [focusSegmentId]);
+
+  useEffect(() => {
+    if (!composerFor && !threadFor) return;
+
+    function onPointerDown(event: MouseEvent) {
+      const target = event.target as Element | null;
+      if (target?.closest?.("[data-comment-popover]")) return;
+      if (target?.closest?.("[data-comment-trigger]")) return;
+      setComposerFor(null);
+      setThreadFor(null);
+    }
+
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      setComposerFor(null);
+      setThreadFor(null);
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [composerFor, threadFor]);
 
   /** Derives a clip candidate from the current DOM selection inside the transcript. */
   const readSelection = useCallback(() => {
@@ -311,49 +335,60 @@ export function TranscriptPanel({
                           className="flex shrink-0 items-center gap-1.5 pt-0.5"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {segmentComments.length > 0 ? (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setThreadFor((prev) =>
-                                  prev === segment.id ? null : segment.id
-                                )
-                              }
-                              aria-label="View comments"
-                            >
-                              <CommentCountBadge count={segmentComments.length} />
-                            </button>
-                          ) : null}
-
                           <button
                             type="button"
-                            aria-label="Leave a comment"
+                            data-comment-trigger
+                            aria-label={
+                              segmentComments.length > 0
+                                ? `${segmentComments.length} comments`
+                                : "Leave a comment"
+                            }
                             onClick={() => {
+                              if (segmentComments.length > 0) {
+                                setComposerFor(null);
+                                setThreadFor((prev) =>
+                                  prev === segment.id ? null : segment.id
+                                );
+                                return;
+                              }
                               setThreadFor(null);
                               setComposerFor((prev) =>
                                 prev === segment.id ? null : segment.id
                               );
                             }}
                             className={cn(
-                              "rounded-md p-0.5 text-text-faint transition hover:text-accent",
-                              isHovered || composerFor === segment.id
+                              "inline-flex items-center gap-1 rounded-md p-0.5 transition hover:text-accent",
+                              segmentComments.length > 0
+                                ? "text-accent opacity-100"
+                                : "text-text-faint",
+                              segmentComments.length > 0 ||
+                                isHovered ||
+                                composerFor === segment.id
                                 ? "opacity-100"
                                 : "opacity-0"
                             )}
                           >
                             <MessageSquarePlus className="h-3.5 w-3.5" />
+                            {segmentComments.length > 0 ? (
+                              <span className="text-xs font-medium tabular-nums">
+                                {segmentComments.length}
+                              </span>
+                            ) : null}
                           </button>
                         </div>
                       </div>
 
                       <AnimatePresence>
                         {composerFor === segment.id ? (
-                          <div className="absolute right-8 top-0 z-40">
+                          <div
+                            data-comment-popover
+                            className="absolute right-8 top-0 z-40"
+                          >
                             <CommentComposer
                               onSubmit={(text) => {
                                 onAddComment(segment.id, text, segment.startMs);
                                 setComposerFor(null);
-                                setThreadFor(segment.id);
+                                setThreadFor(null);
                               }}
                               onDismiss={() => setComposerFor(null)}
                             />
@@ -361,12 +396,16 @@ export function TranscriptPanel({
                         ) : null}
 
                         {threadFor === segment.id && segmentComments.length > 0 ? (
-                          <div className="absolute right-8 top-0 z-40">
+                          <div
+                            data-comment-popover
+                            className="absolute right-8 top-0 z-40"
+                          >
                             <CommentThread
                               comments={segmentComments}
                               onReply={(text) =>
                                 onAddComment(segment.id, text, segment.startMs)
                               }
+                              onDismiss={() => setThreadFor(null)}
                             />
                           </div>
                         ) : null}

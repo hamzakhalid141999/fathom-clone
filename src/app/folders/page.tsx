@@ -79,7 +79,7 @@ function FoldersContent() {
               <tr
                 key={folder.id}
                 onClick={() => router.push(`/folders/${folder.id}`)}
-                className="cursor-pointer border-b border-border-subtle transition-colors hover:bg-bg-hover"
+                className="group cursor-pointer border-b border-border-subtle transition-colors"
               >
                 <td className="py-3 pr-3">
                   <span className="inline-flex items-center gap-2 text-sm text-accent">
@@ -87,12 +87,14 @@ function FoldersContent() {
                     {folder.name}
                   </span>
                 </td>
-                <td className="py-3 pr-3 text-sm text-text-muted">{calls}</td>
-                <td className="py-3 pr-3 text-sm text-text-muted">
+                <td className="py-3 pr-3 text-sm text-text-muted transition-colors group-hover:text-accent">
+                  {calls}
+                </td>
+                <td className="py-3 pr-3 text-sm text-text-muted transition-colors group-hover:text-accent">
                   {formatShortDate(folder.updatedAt)}
                 </td>
                 <td className="py-3 pr-3">
-                  <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-text-muted transition-colors group-hover:text-accent">
                     <Eye className="h-3.5 w-3.5" />
                     {folder.visibility === "team" ? "Shared with team" : "Not shared"}
                   </span>

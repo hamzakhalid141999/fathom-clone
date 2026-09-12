@@ -1,21 +1,40 @@
 "use client";
 
 import { ArrowLeft, ArrowRight, Play } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function VideoStep({
   src,
+  startPlayback,
   onDone,
   onBack,
 }: {
   src: string;
+  /** False until the full-screen blackout has faded away. */
+  startPlayback: boolean;
   /** Fired when the clip ends or the user skips. */
   onDone: () => void;
   onBack: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [progress, setProgress] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [paused, setPaused] = useState(true);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.pause();
+    video.currentTime = 0;
+    setProgress(0);
+    setPaused(true);
+  }, [src]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !startPlayback) return;
+    const play = video.play();
+    if (play) play.catch(() => setPaused(true));
+  }, [startPlayback]);
 
   function togglePlay() {
     const video = videoRef.current;
@@ -29,9 +48,9 @@ export function VideoStep({
       <video
         ref={videoRef}
         src={src}
-        autoPlay
         muted
         playsInline
+        preload="auto"
         onEnded={onDone}
         onPlay={() => setPaused(false)}
         onPause={() => setPaused(true)}
@@ -43,8 +62,7 @@ export function VideoStep({
         className="block h-auto w-full cursor-pointer"
       />
 
-      {/* Recoverable if a browser refuses to autoplay. */}
-      {paused ? (
+      {paused && startPlayback ? (
         <button
           type="button"
           onClick={togglePlay}
@@ -55,7 +73,6 @@ export function VideoStep({
         </button>
       ) : null}
 
-      {/* Black-to-transparent gradient across the full width */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/75 to-transparent" />
 
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-6 pb-7">

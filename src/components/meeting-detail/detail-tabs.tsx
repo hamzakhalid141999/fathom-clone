@@ -23,7 +23,7 @@ export function DetailTabs({
   return (
     <div
       role="tablist"
-      className="flex shrink-0 items-center gap-6 border-b border-border-subtle px-6"
+      className="flex shrink-0 items-center gap-6 px-6 bg-[#151515]"
     >
       {tabs.map((tab) => {
         const isActive = tab.id === active;

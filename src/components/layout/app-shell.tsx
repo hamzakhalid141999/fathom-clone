@@ -7,20 +7,23 @@ export function AppShell({
   children,
   showAskPanel = true,
   scrollMain = true,
+  showChrome = true,
 }: {
   children: React.ReactNode;
   showAskPanel?: boolean;
   /** Detail views manage their own internal scrolling. */
   scrollMain?: boolean;
+  /** Meeting detail hides the app top nav / sub nav. */
+  showChrome?: boolean;
 }) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-bg text-text">
-      <TopNav />
-      <SubNav />
+      {showChrome ? <TopNav /> : null}
+      {showChrome ? <SubNav /> : null}
       <div className="flex min-h-0 flex-1">
         <main
           className={cn(
-            "min-w-0 flex-1",
+            "relative z-20 min-w-0 flex-1",
             scrollMain ? "overflow-y-auto" : "overflow-hidden"
           )}
         >

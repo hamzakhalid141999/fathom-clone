@@ -64,14 +64,25 @@ export function CaptureStep({
 
             return (
               <Row key={option.id}>
-                <button
-                  type="button"
+                {/* A div, not a button: the bot dropdown below nests real buttons. */}
+                <div
+                  role="radio"
+                  aria-checked={selected}
+                  tabIndex={0}
                   onClick={() => setMode(option.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setMode(option.id);
+                    }
+                  }}
                   className={cn(
-                    "w-full rounded-xl border px-4 py-3.5 text-left transition-colors",
-                    selected
-                      ? "border-[#00c0fb] bg-[#091c22]"
-                      : "border-[#242424] bg-[#151515] hover:border-[#3a3a3a]"
+                    "w-full cursor-pointer border px-4 py-3.5 text-left outline-none transition-colors",
+                    selected && option.id === "video"
+                      ? "rounded-t-xl border-[#00c0fb] bg-[#091c22]"
+                      : selected
+                        ? "rounded-xl border-[#00c0fb] bg-[#091c22]"
+                        : "rounded-xl border-[#242424] bg-[#151515] hover:border-[#3a3a3a]"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -101,18 +112,18 @@ export function CaptureStep({
                     )}
                   </div>
 
-                  {selected && option.id === "video" ? (
-                    <div className="mt-3.5 border-t border-[#123b49] pt-3">
-                      <p className="text-[12.5px] text-[#9a9a9a]">
-                        <span className="underline decoration-dotted underline-offset-2">
-                          Some platforms
-                        </span>{" "}
-                        need a bot to capture video
-                      </p>
-                      <BotSelect value={botOption} onChange={setBotOption} />
-                    </div>
-                  ) : null}
-                </button>
+                </div>
+                {selected && option.id === "video" ? (
+                  <div className="-mt-px rounded-b-xl border border-t-0 border-[#00c0fb] bg-[#091c22] px-4 pb-3.5 pt-3">
+                    <p className="text-[12.5px] text-[#9a9a9a]">
+                      <span className="underline decoration-dotted underline-offset-2">
+                        Some platforms
+                      </span>{" "}
+                      need a bot to capture video
+                    </p>
+                    <BotSelect value={botOption} onChange={setBotOption} />
+                  </div>
+                ) : null}
               </Row>
             );
           })}
@@ -171,28 +182,21 @@ function BotSelect({
 
   return (
     <div ref={wrapRef} className="relative mt-2.5">
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
+        aria-expanded={open}
         onClick={(event) => {
           event.stopPropagation();
           setOpen((prev) => !prev);
         }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            event.stopPropagation();
-            setOpen((prev) => !prev);
-          }
-        }}
-        className="flex w-full cursor-pointer items-center gap-1.5 rounded-lg border border-[#12455a] bg-[#0a2d39] px-3 py-2 text-left outline-none"
+        className="flex w-full items-center gap-1.5 rounded-lg border border-[#12455a] bg-[#0a2d39] px-3 py-2 text-left"
       >
         <span className="text-[12.5px] font-semibold text-white">{value.label}</span>
         <span className="min-w-0 flex-1 truncate text-[12.5px] text-[#8fa9b3]">
           {value.hint}
         </span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[#8fa9b3]" />
-      </div>
+      </button>
 
       <AnimatePresence>
         {open ? (

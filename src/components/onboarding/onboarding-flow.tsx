@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 const STEPS = ["consent", "video-1", "capture", "video-2"] as const;
 type Step = (typeof STEPS)[number];
 
+const VIDEO_STEPS = new Set<Step>(["video-1", "video-2"]);
+const BLACKOUT_MS = 500;
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const variants = {
@@ -34,13 +36,31 @@ export function OnboardingFlow() {
   const [step, setStep] = useState<Step>("consent");
   const [direction, setDirection] = useState(1);
   const [leaving, setLeaving] = useState(false);
+  const [blackout, setBlackout] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
+  const [awaitingReveal, setAwaitingReveal] = useState(false);
 
   useEffect(() => {
     router.prefetch("/meetings");
   }, [router]);
 
   function go(next: Step) {
-    setDirection(STEPS.indexOf(next) > STEPS.indexOf(step) ? 1 : -1);
+    const nextDirection = STEPS.indexOf(next) > STEPS.indexOf(step) ? 1 : -1;
+    setDirection(nextDirection);
+
+    if (VIDEO_STEPS.has(next) && nextDirection > 0) {
+      setBlackout(true);
+      setVideoReady(false);
+      setAwaitingReveal(true);
+      window.setTimeout(() => {
+        setStep(next);
+        setBlackout(false);
+      }, BLACKOUT_MS);
+      return;
+    }
+
+    setAwaitingReveal(false);
+    setVideoReady(VIDEO_STEPS.has(next));
     setStep(next);
   }
 
@@ -52,7 +72,7 @@ export function OnboardingFlow() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black px-6 py-12">
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black px-4 py-8 lg:px-6 lg:py-10">
       <Starfield />
 
       <div
@@ -79,7 +99,8 @@ export function OnboardingFlow() {
 
               {step === "video-1" ? (
                 <VideoStep
-                  src="/assets/onboarding/onboarding-1.mp4"
+                  src="/assets/onboarding/onboarding-1.mov"
+                  startPlayback={videoReady}
                   onDone={() => go("capture")}
                   onBack={() => go("consent")}
                 />
@@ -94,7 +115,8 @@ export function OnboardingFlow() {
 
               {step === "video-2" ? (
                 <VideoStep
-                  src="/assets/onboarding/onboarding-2.mp4"
+                  src="/assets/onboarding/onboarding-2.mov"
+                  startPlayback={videoReady}
                   onDone={finish}
                   onBack={() => go("capture")}
                 />
@@ -104,12 +126,21 @@ export function OnboardingFlow() {
         </AnimatePresence>
       </div>
 
-      {/* Cross-fade in from the landing page, and out into the app. */}
+      {/* Landing fade-in, video blackout, and exit into the app. */}
       <motion.div
         aria-hidden
         initial={{ opacity: 1 }}
-        animate={{ opacity: leaving ? 1 : 0 }}
-        transition={{ duration: leaving ? 0.42 : 0.55, ease: "easeInOut" }}
+        animate={{ opacity: leaving || blackout ? 1 : 0 }}
+        transition={{
+          duration: leaving ? 0.42 : blackout ? 0.32 : 0.5,
+          ease: "easeInOut",
+        }}
+        onAnimationComplete={() => {
+          if (awaitingReveal && !leaving && !blackout && VIDEO_STEPS.has(step)) {
+            setAwaitingReveal(false);
+            setVideoReady(true);
+          }
+        }}
         className="pointer-events-none fixed inset-0 z-50 bg-black"
       />
     </div>
