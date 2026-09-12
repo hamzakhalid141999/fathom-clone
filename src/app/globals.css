@@ -65,6 +65,28 @@ body {
   color: var(--text);
 }
 
+/* Slow levitation for the marketing hero visual */
+@keyframes levitate {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
+.animate-levitate {
+  animation: levitate 7s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-levitate {
+    animation: none;
+  }
+}
+
 /* Thin dark scrollbars */
 * {
   scrollbar-width: thin;

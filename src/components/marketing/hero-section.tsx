@@ -47,15 +47,18 @@ export function HeroSection() {
 
           {/* Single flat image: the floating product cards are baked into the avif. */}
           <div className="w-[88vw] max-w-[620px] justify-self-center lg:w-[42vw] lg:translate-y-3 lg:justify-self-end">
-            <Image
-              src="/assets/hero/hero-visual.avif"
-              alt="Fathom meeting summary, Ask Fathom, and recording controls floating above a starfield"
-              width={1400}
-              height={900}
-              sizes="(max-width: 1024px) 92vw, 42vw"
-              className="h-auto w-full"
-              priority
-            />
+            {/* Inner element carries the animation so it doesn't fight the wrapper's offset. */}
+            <div className="animate-levitate">
+              <Image
+                src="/assets/hero/hero-visual.avif"
+                alt="Fathom meeting summary, Ask Fathom, and recording controls floating above a starfield"
+                width={1400}
+                height={900}
+                sizes="(max-width: 1024px) 92vw, 42vw"
+                className="h-auto w-full"
+                priority
+              />
+            </div>
           </div>
         </div>
       </div>
