@@ -1,0 +1,89 @@
+"use client";
+
+import { ArrowLeft, ArrowRight, Play } from "lucide-react";
+import { useRef, useState } from "react";
+
+export function VideoStep({
+  src,
+  onDone,
+  onBack,
+}: {
+  src: string;
+  /** Fired when the clip ends or the user skips. */
+  onDone: () => void;
+  onBack: () => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  function togglePlay() {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) video.play();
+    else video.pause();
+  }
+
+  return (
+    <div className="relative w-full max-w-[900px] overflow-hidden rounded-2xl bg-black shadow-[0_40px_120px_rgba(0,0,0,0.75)]">
+      <video
+        ref={videoRef}
+        src={src}
+        autoPlay
+        muted
+        playsInline
+        onEnded={onDone}
+        onPlay={() => setPaused(false)}
+        onPause={() => setPaused(true)}
+        onClick={togglePlay}
+        onTimeUpdate={(event) => {
+          const video = event.currentTarget;
+          if (video.duration) setProgress(video.currentTime / video.duration);
+        }}
+        className="block h-auto w-full cursor-pointer"
+      />
+
+      {/* Recoverable if a browser refuses to autoplay. */}
+      {paused ? (
+        <button
+          type="button"
+          onClick={togglePlay}
+          aria-label="Play"
+          className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-black transition hover:bg-white"
+        >
+          <Play className="ml-0.5 h-7 w-7 fill-current" />
+        </button>
+      ) : null}
+
+      {/* Black-to-transparent gradient across the full width */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black via-black/75 to-transparent" />
+
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between px-6 pb-7">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-[13px] font-medium text-white/85 backdrop-blur-sm transition-colors hover:bg-white/12 hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+
+        <button
+          type="button"
+          onClick={onDone}
+          className="inline-flex items-center gap-2 rounded-full bg-white/95 px-5 py-2 text-[13px] font-semibold text-black transition-colors hover:bg-white"
+        >
+          Skip
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/10">
+        <div
+          className="h-full bg-[#00c0fb] transition-[width] duration-200 ease-linear"
+          style={{ width: `${Math.round(progress * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
