@@ -1,0 +1,223 @@
+"use client";
+
+import { MeetingCardMenu } from "@/components/meetings/meeting-card-menu";
+import { formatDurationMins } from "@/lib/format";
+import { useLibrary } from "@/lib/library-context";
+import type { Meeting } from "@/lib/types/meeting";
+import { cn } from "@/lib/utils";
+import { Eye, EyeOff, Folder, MoreVertical, Play } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useId, useRef, useState } from "react";
+
+export function MeetingCard({ meeting }: { meeting: Meeting }) {
+  const router = useRouter();
+  const menuButtonId = useId();
+  const { getMeetingUi, getFoldersForMeeting, togglePrivate, isDeleted } =
+    useLibrary();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const cardRef = useRef<HTMLElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+
+  if (isDeleted(meeting.id)) return null;
+
+  const ui = getMeetingUi(meeting.id);
+  const folders = getFoldersForMeeting(meeting.id);
+  const folderLabel = folders.map((f) => f.name).join(", ");
+  const active = menuOpen;
+
+  return (
+    <article
+      ref={cardRef}
+      className={cn(
+        "group relative w-full origin-center",
+        "transition-transform duration-300 ease-out will-change-transform",
+        "hover:z-30 hover:scale-[1.08]",
+        active && "z-30 scale-[1.08]"
+      )}
+    >
+      <div
+        role="link"
+        tabIndex={0}
+        onClick={() => {
+          if (!menuOpen) router.push(`/meetings/${meeting.id}`);
+        }}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && !menuOpen) {
+            e.preventDefault();
+            router.push(`/meetings/${meeting.id}`);
+          }
+        }}
+        className={cn(
+          "block cursor-pointer overflow-hidden rounded-xl outline-none transition-[background-color,box-shadow] duration-200",
+          "bg-transparent group-hover:bg-[#1a1a1e] group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.5)]",
+          active && "bg-[#1a1a1e] shadow-[0_16px_40px_rgba(0,0,0,0.5)]"
+        )}
+      >
+        <div className="relative aspect-[16/10] overflow-hidden bg-[#2a1a18]">
+          <Image
+            src="/assets/placeholders/audio_only.png"
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 280px"
+            className="object-cover rounded-[10px]"
+          />
+
+          <button
+            type="button"
+            aria-label={ui.isPrivate ? "Private recording" : "Visible recording"}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              togglePrivate(meeting.id);
+            }}
+            className={cn(
+              "absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-md transition",
+              ui.isPrivate
+                ? "bg-[#f5c542] text-black"
+                : "bg-black/70 text-white opacity-0 group-hover:opacity-100"
+            )}
+          >
+            {ui.isPrivate ? (
+              <EyeOff className="h-3.5 w-3.5" />
+            ) : (
+              <Eye className="h-3.5 w-3.5" />
+            )}
+          </button>
+
+          <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[11px] font-medium text-white">
+            {formatDurationMins(meeting.durationMs)}
+          </span>
+
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 group-hover:bg-black/25 group-hover:opacity-100">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-black shadow-lg">
+              <Play className="ml-0.5 h-6 w-6 fill-current" />
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={cn(
+            "flex min-h-[52px] items-start gap-2 px-1 py-2.5",
+            "transition-[padding] duration-200 ease-out",
+            "group-hover:px-4 group-hover:py-3",
+            active && "px-4 py-3"
+          )}
+        >
+          <div className="min-w-0 flex-1 pt-0.5">
+            <p
+              className={cn(
+                "truncate text-sm font-medium text-text transition-colors duration-200",
+                "group-hover:text-white group-hover:underline group-hover:decoration-dotted group-hover:decoration-white/35 group-hover:underline-offset-4",
+                active &&
+                "text-white underline decoration-dotted decoration-white/35 underline-offset-4"
+              )}
+            >
+              {meeting.title}
+            </p>
+            {folderLabel ? (
+              <Link
+                href="/folders"
+                onClick={(e) => e.stopPropagation()}
+                className="mt-1.5 inline-flex max-w-full items-center gap-1.5 text-[12px] text-accent hover:text-accent-strong"
+              >
+                <Folder className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{folderLabel}</span>
+              </Link>
+            ) : null}
+            {ui.meetingType ? (
+              <p className="mt-1 text-[11px] text-text-faint">{ui.meetingType}</p>
+            ) : null}
+          </div>
+
+          <button
+            ref={menuButtonRef}
+            id={menuButtonId}
+            type="button"
+            aria-label="Meeting actions"
+            aria-expanded={menuOpen}
+            aria-haspopup="menu"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMenuOpen((open) => !open);
+            }}
+            className={cn(
+              "shrink-0 rounded-md p-1 text-text-muted transition-opacity duration-200 ease-out hover:text-text",
+              "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
+              active && "opacity-100 pointer-events-auto bg-bg-hover text-text"
+            )}
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {menuOpen ? (
+        <CardMenuPortal
+          meetingId={meeting.id}
+          menuButtonRef={menuButtonRef}
+          onClose={() => setMenuOpen(false)}
+        />
+      ) : null}
+    </article>
+  );
+}
+
+function CardMenuPortal({
+  meetingId,
+  menuButtonRef,
+  onClose,
+}: {
+  meetingId: string;
+  menuButtonRef: React.RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    function place() {
+      const btn = menuButtonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const menuWidth = 300;
+      let left = rect.right - menuWidth;
+      left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
+      setPos({
+        top: rect.bottom + 8,
+        left,
+      });
+    }
+
+    place();
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
+    return () => {
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
+    };
+  }, [menuButtonRef]);
+
+  if (!pos) return null;
+
+  return (
+    <div
+      className="fixed z-[100]"
+      style={{ top: pos.top, left: pos.left }}
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <MeetingCardMenu
+        meetingId={meetingId}
+        open
+        onClose={onClose}
+        ignoreCloseRef={menuButtonRef}
+      />
+    </div>
+  );
+}
