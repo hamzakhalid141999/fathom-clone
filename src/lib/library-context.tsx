@@ -1,20 +1,34 @@
 "use client";
 
-import type { Folder, MeetingType, MeetingUiState } from "@/lib/types/library";
+import type {
+  Folder,
+  FolderVisibility,
+  MeetingType,
+  MeetingUiState,
+} from "@/lib/types/library";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react";
 
+const STORAGE_KEY = "fathom.library.v1";
+
 type LibraryContextValue = {
   folders: Folder[];
+  /** False until localStorage has been read, so pages can avoid a false "not found". */
+  hydrated: boolean;
   getMeetingUi: (meetingId: string) => MeetingUiState;
   addMeetingToFolder: (meetingId: string, folderId: string) => void;
+  removeMeetingFromFolder: (meetingId: string, folderId: string) => void;
   createFolderAndAddMeeting: (meetingId: string, name: string) => Folder;
+  getFolderById: (folderId: string) => Folder | undefined;
+  deleteFolder: (folderId: string) => void;
+  setFolderVisibility: (folderId: string, visibility: FolderVisibility) => void;
   setMeetingType: (meetingId: string, meetingType: MeetingType) => void;
   togglePrivate: (meetingId: string) => void;
   deleteMeeting: (meetingId: string) => void;
@@ -33,38 +47,98 @@ const defaultUi: MeetingUiState = {
 
 function makeFolder(name: string): Folder {
   const trimmed = name.trim() || "Untitled folder";
+  const now = new Date().toISOString();
   return {
     id: `folder_${trimmed
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "")}_${Date.now().toString(36)}`,
     name: trimmed,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
+    visibility: "private",
   };
 }
 
 export function LibraryProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [meetingUi, setMeetingUi] = useState<Record<string, MeetingUiState>>({});
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed?.folders)) setFolders(parsed.folders);
+        if (parsed?.meetingUi && typeof parsed.meetingUi === "object") {
+          setMeetingUi(parsed.meetingUi);
+        }
+      }
+    } catch {
+      // Corrupt or unavailable storage just means we start empty.
+    }
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ folders, meetingUi }));
+    } catch {
+      // Storage can be unavailable — state stays in memory for this session.
+    }
+  }, [hydrated, folders, meetingUi]);
 
   const getMeetingUi = useCallback(
     (meetingId: string): MeetingUiState => meetingUi[meetingId] ?? defaultUi,
     [meetingUi]
   );
 
-  const addMeetingToFolder = useCallback((meetingId: string, folderId: string) => {
-    setMeetingUi((prev) => {
-      const current = prev[meetingId] ?? defaultUi;
-      if (current.folderIds.includes(folderId)) return prev;
-      return {
-        ...prev,
-        [meetingId]: {
-          ...current,
-          folderIds: [...current.folderIds, folderId],
-        },
-      };
-    });
+  const touchFolder = useCallback((folderId: string) => {
+    const now = new Date().toISOString();
+    setFolders((prev) =>
+      prev.map((folder) =>
+        folder.id === folderId ? { ...folder, updatedAt: now } : folder
+      )
+    );
   }, []);
+
+  const addMeetingToFolder = useCallback(
+    (meetingId: string, folderId: string) => {
+      setMeetingUi((prev) => {
+        const current = prev[meetingId] ?? defaultUi;
+        if (current.folderIds.includes(folderId)) return prev;
+        return {
+          ...prev,
+          [meetingId]: {
+            ...current,
+            folderIds: [...current.folderIds, folderId],
+          },
+        };
+      });
+      touchFolder(folderId);
+    },
+    [touchFolder]
+  );
+
+  const removeMeetingFromFolder = useCallback(
+    (meetingId: string, folderId: string) => {
+      setMeetingUi((prev) => {
+        const current = prev[meetingId] ?? defaultUi;
+        if (!current.folderIds.includes(folderId)) return prev;
+        return {
+          ...prev,
+          [meetingId]: {
+            ...current,
+            folderIds: current.folderIds.filter((id) => id !== folderId),
+          },
+        };
+      });
+      touchFolder(folderId);
+    },
+    [touchFolder]
+  );
 
   const createFolderAndAddMeeting = useCallback(
     (meetingId: string, name: string) => {
@@ -92,6 +166,35 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       return folder;
     },
     [folders]
+  );
+
+  const getFolderById = useCallback(
+    (folderId: string) => folders.find((folder) => folder.id === folderId),
+    [folders]
+  );
+
+  const deleteFolder = useCallback((folderId: string) => {
+    setFolders((prev) => prev.filter((folder) => folder.id !== folderId));
+    setMeetingUi((prev) => {
+      const next: Record<string, MeetingUiState> = {};
+      for (const [meetingId, state] of Object.entries(prev)) {
+        next[meetingId] = state.folderIds.includes(folderId)
+          ? { ...state, folderIds: state.folderIds.filter((id) => id !== folderId) }
+          : state;
+      }
+      return next;
+    });
+  }, []);
+
+  const setFolderVisibility = useCallback(
+    (folderId: string, visibility: FolderVisibility) => {
+      setFolders((prev) =>
+        prev.map((folder) =>
+          folder.id === folderId ? { ...folder, visibility } : folder
+        )
+      );
+    },
+    []
   );
 
   const setMeetingType = useCallback((meetingId: string, meetingType: MeetingType) => {
@@ -142,9 +245,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const value = useMemo(
     () => ({
       folders,
+      hydrated,
       getMeetingUi,
       addMeetingToFolder,
+      removeMeetingFromFolder,
       createFolderAndAddMeeting,
+      getFolderById,
+      deleteFolder,
+      setFolderVisibility,
       setMeetingType,
       togglePrivate,
       deleteMeeting,
@@ -154,9 +262,14 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     }),
     [
       folders,
+      hydrated,
       getMeetingUi,
       addMeetingToFolder,
+      removeMeetingFromFolder,
       createFolderAndAddMeeting,
+      getFolderById,
+      deleteFolder,
+      setFolderVisibility,
       setMeetingType,
       togglePrivate,
       deleteMeeting,

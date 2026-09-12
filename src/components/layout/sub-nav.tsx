@@ -17,7 +17,11 @@ const tabs: { href: string; label: string; disabled?: boolean; badge?: string }[
 
 export function SubNav() {
   const pathname = usePathname();
-  const { folders } = useLibrary();
+  const { getFolderById } = useLibrary();
+
+  // An open folder gets its own tab, the way Fathom nests it after Coaching.
+  const openFolderId = pathname.match(/^\/folders\/([^/]+)$/)?.[1];
+  const openFolder = openFolderId ? getFolderById(openFolderId) : undefined;
 
   return (
     <nav className="flex h-11 shrink-0 items-center gap-6 border-b border-border-subtle bg-bg-elevated px-6">
@@ -25,7 +29,7 @@ export function SubNav() {
         const active =
           tab.href === "/meetings"
             ? pathname === "/meetings" || pathname.startsWith("/meetings/")
-            : tab.href !== "#" && pathname.startsWith(tab.href);
+            : tab.href !== "#" && pathname === tab.href;
 
         const className = cn(
           "relative h-full inline-flex items-center gap-1.5 text-sm transition-colors",
@@ -36,11 +40,6 @@ export function SubNav() {
         const label = (
           <>
             {tab.label}
-            {tab.href === "/folders" && folders.length > 0 ? (
-              <span className="rounded-full bg-bg-hover px-1.5 py-0.5 text-[10px] text-text-muted">
-                {folders.length}
-              </span>
-            ) : null}
             {tab.badge ? (
               <span className="rounded-sm bg-[#f5c542]/15 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-[#f5c542]">
                 {tab.badge}
@@ -66,6 +65,16 @@ export function SubNav() {
           </Link>
         );
       })}
+
+      {openFolder ? (
+        <Link
+          href={`/folders/${openFolder.id}`}
+          className="relative inline-flex h-full items-center text-sm font-medium text-accent"
+        >
+          {openFolder.name}
+          <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-accent" />
+        </Link>
+      ) : null}
     </nav>
   );
 }

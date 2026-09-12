@@ -1,6 +1,7 @@
 "use client";
 
-import { MeetingCardMenu } from "@/components/meetings/meeting-card-menu";
+import { CardMenuPortal } from "@/components/meetings/card-menu-portal";
+import { folderPathLabel } from "@/lib/folder-label";
 import { formatDurationMins } from "@/lib/format";
 import { useLibrary } from "@/lib/library-context";
 import type { Meeting } from "@/lib/types/meeting";
@@ -9,7 +10,7 @@ import { Eye, EyeOff, Folder, MoreVertical, Play } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 export function MeetingCard({ meeting }: { meeting: Meeting }) {
   const router = useRouter();
@@ -24,7 +25,6 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
 
   const ui = getMeetingUi(meeting.id);
   const folders = getFoldersForMeeting(meeting.id);
-  const folderLabel = folders.map((f) => f.name).join(", ");
   const active = menuOpen;
 
   return (
@@ -116,14 +116,14 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
             >
               {meeting.title}
             </p>
-            {folderLabel ? (
+            {folders.length > 0 ? (
               <Link
-                href="/folders"
+                href={`/folders/${folders[0].id}`}
                 onClick={(e) => e.stopPropagation()}
                 className="mt-1.5 inline-flex max-w-full items-center gap-1.5 text-[12px] text-accent hover:text-accent-strong"
               >
                 <Folder className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">{folderLabel}</span>
+                <span className="truncate">{folderPathLabel(folders)}</span>
               </Link>
             ) : null}
             {ui.meetingType ? (
@@ -150,7 +150,7 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
             className={cn(
               "shrink-0 rounded-md p-1 text-text-muted transition-opacity duration-200 ease-out hover:text-text",
               "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
-              active && "opacity-100 pointer-events-auto bg-bg-hover text-text"
+              active && "opacity-100 pointer-events-auto bg-accent text-white"
             )}
           >
             <MoreVertical className="h-4 w-4" />
@@ -166,58 +166,5 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
         />
       ) : null}
     </article>
-  );
-}
-
-function CardMenuPortal({
-  meetingId,
-  menuButtonRef,
-  onClose,
-}: {
-  meetingId: string;
-  menuButtonRef: React.RefObject<HTMLButtonElement | null>;
-  onClose: () => void;
-}) {
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-
-  useEffect(() => {
-    function place() {
-      const btn = menuButtonRef.current;
-      if (!btn) return;
-      const rect = btn.getBoundingClientRect();
-      const menuWidth = 300;
-      let left = rect.right - menuWidth;
-      left = Math.max(8, Math.min(left, window.innerWidth - menuWidth - 8));
-      setPos({
-        top: rect.bottom + 8,
-        left,
-      });
-    }
-
-    place();
-    window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, true);
-    return () => {
-      window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place, true);
-    };
-  }, [menuButtonRef]);
-
-  if (!pos) return null;
-
-  return (
-    <div
-      className="fixed z-[100]"
-      style={{ top: pos.top, left: pos.left }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <MeetingCardMenu
-        meetingId={meetingId}
-        open
-        onClose={onClose}
-        ignoreCloseRef={menuButtonRef}
-      />
-    </div>
   );
 }

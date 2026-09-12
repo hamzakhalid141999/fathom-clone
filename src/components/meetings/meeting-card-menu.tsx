@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
+  FolderMinus,
   FolderPlus,
   Link2,
   Phone,
@@ -29,15 +30,19 @@ export function MeetingCardMenu({
   open,
   onClose,
   ignoreCloseRef,
+  folderId,
 }: {
   meetingId: string;
   open: boolean;
   onClose: () => void;
   ignoreCloseRef?: React.RefObject<HTMLElement | null>;
+  /** Set when the menu is opened from inside a folder, which adds Remove from Folder. */
+  folderId?: string;
 }) {
   const {
     folders,
     addMeetingToFolder,
+    removeMeetingFromFolder,
     createFolderAndAddMeeting,
     setMeetingType,
     deleteMeeting,
@@ -145,6 +150,18 @@ export function MeetingCardMenu({
             transition={{ duration: 0.14 }}
             className="flex flex-col"
           >
+            {folderId ? (
+              <MenuRow
+                icon={<FolderMinus className="h-4 w-4" />}
+                title="Remove from Folder"
+                subtitle="Remove this call from this folder"
+                danger
+                onClick={() => {
+                  removeMeetingFromFolder(meetingId, folderId);
+                  onClose();
+                }}
+              />
+            ) : null}
             <MenuRow
               icon={<FolderPlus className="h-4 w-4" />}
               title="Add to Folder"
@@ -344,7 +361,14 @@ function MenuRow({
       <span className="min-w-0">
         <span className="block text-sm font-medium">{title}</span>
         {subtitle ? (
-          <span className="mt-0.5 block text-xs text-text-muted">{subtitle}</span>
+          <span
+            className={cn(
+              "mt-0.5 block text-xs",
+              danger ? "text-danger/80" : "text-text-muted"
+            )}
+          >
+            {subtitle}
+          </span>
         ) : null}
       </span>
     </button>

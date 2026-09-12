@@ -1,25 +1,44 @@
 "use client";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { getMeetingById } from "@/lib/data/meetings";
+import { formatShortDate } from "@/lib/format";
 import { useLibrary } from "@/lib/library-context";
-import { Folder, FolderOpen } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { ChevronDown, ChevronUp, Eye, Folder, FolderOpen } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 
 function FoldersContent() {
+  const router = useRouter();
   const { folders, getMeetingsInFolder } = useLibrary();
+  const [descending, setDescending] = useState(true);
+
+  const rows = useMemo(() => {
+    return folders
+      .map((folder) => ({
+        folder,
+        calls: getMeetingsInFolder(folder.id).length,
+      }))
+      .sort((a, b) => {
+        const diff =
+          new Date(a.folder.updatedAt).getTime() -
+          new Date(b.folder.updatedAt).getTime();
+        return descending ? -diff : diff;
+      });
+  }, [folders, getMeetingsInFolder, descending]);
 
   return (
     <div className="mx-auto w-full max-w-5xl px-6 py-6">
-      <div className="mb-6">
+      <div className="flex items-center gap-2">
         <h1 className="text-xl font-semibold tracking-tight text-text">Folders</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Collections of calls you create from meeting cards
-        </p>
+        <span className="rounded-full bg-bg-hover px-2 py-0.5 text-xs font-medium text-text-muted">
+          {folders.length}
+        </span>
       </div>
 
       {folders.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-bg-surface px-6 py-20 text-center">
+        <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-bg-surface px-6 py-20 text-center">
           <FolderOpen className="mb-3 h-8 w-8 text-text-faint" />
           <p className="text-sm font-medium text-text">No folders yet</p>
           <p className="mt-1 max-w-sm text-sm text-text-muted">
@@ -33,49 +52,76 @@ function FoldersContent() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-3">
-          {folders.map((folder) => {
-            const meetingIds = getMeetingsInFolder(folder.id);
-            const meetings = meetingIds
-              .map((id) => getMeetingById(id))
-              .filter(Boolean);
-
-            return (
-              <div
+        <table className="mt-5 w-full border-collapse text-left">
+          <thead>
+            <tr className="border-b border-border-subtle">
+              <Th className="w-[45%]">Folder</Th>
+              <Th className="w-[15%]">Calls</Th>
+              <Th className="w-[20%]">
+                <button
+                  type="button"
+                  onClick={() => setDescending((prev) => !prev)}
+                  className="inline-flex items-center gap-1 uppercase tracking-wide transition hover:text-text"
+                >
+                  Last Added At
+                  {descending ? (
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  ) : (
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </Th>
+              <Th className="w-[20%]">Visibility</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ folder, calls }) => (
+              <tr
                 key={folder.id}
-                className="rounded-xl border border-border bg-bg-surface px-4 py-4"
+                onClick={() => router.push(`/folders/${folder.id}`)}
+                className="cursor-pointer border-b border-border-subtle transition-colors hover:bg-bg-hover"
               >
-                <div className="flex items-center gap-2">
-                  <Folder className="h-4 w-4 text-accent" />
-                  <h2 className="text-sm font-semibold text-text">{folder.name}</h2>
-                  <span className="text-xs text-text-faint">
-                    {meetings.length} call{meetings.length === 1 ? "" : "s"}
+                <td className="py-3 pr-3">
+                  <span className="inline-flex items-center gap-2 text-sm text-accent">
+                    <Folder className="h-4 w-4 shrink-0 fill-current" />
+                    {folder.name}
                   </span>
-                </div>
-                {meetings.length > 0 ? (
-                  <ul className="mt-3 space-y-1.5 border-t border-border-subtle pt-3">
-                    {meetings.map((meeting) =>
-                      meeting ? (
-                        <li key={meeting.id}>
-                          <Link
-                            href={`/meetings/${meeting.id}`}
-                            className="text-sm text-text-muted transition hover:text-accent"
-                          >
-                            {meeting.title}
-                          </Link>
-                        </li>
-                      ) : null
-                    )}
-                  </ul>
-                ) : (
-                  <p className="mt-2 text-sm text-text-faint">Empty folder</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                </td>
+                <td className="py-3 pr-3 text-sm text-text-muted">{calls}</td>
+                <td className="py-3 pr-3 text-sm text-text-muted">
+                  {formatShortDate(folder.updatedAt)}
+                </td>
+                <td className="py-3 pr-3">
+                  <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                    <Eye className="h-3.5 w-3.5" />
+                    {folder.visibility === "team" ? "Shared with team" : "Not shared"}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
+  );
+}
+
+function Th({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <th
+      className={cn(
+        "pb-2 text-[11px] font-medium uppercase tracking-wide text-text-faint",
+        className
+      )}
+    >
+      {children}
+    </th>
   );
 }
 
