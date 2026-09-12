@@ -9,10 +9,16 @@ import { SummaryPanel } from "@/components/meeting-detail/summary-panel";
 import { TranscriptPanel } from "@/components/meeting-detail/transcript-panel";
 import { PlaybackProvider } from "@/lib/playback-context";
 import type { Meeting, TranscriptComment } from "@/lib/types/meeting";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export function MeetingDetail({ meeting }: { meeting: Meeting }) {
-  const [tab, setTab] = useState<DetailTab>("summary");
+  // Arriving from search: ?segment= jumps to that line, ?q= highlights the term.
+  const searchParams = useSearchParams();
+  const focusSegmentId = searchParams.get("segment");
+  const searchTerm = searchParams.get("q") ?? "";
+
+  const [tab, setTab] = useState<DetailTab>(focusSegmentId ? "transcript" : "summary");
   const [comments, setComments] = useState<TranscriptComment[]>([]);
   const [completed, setCompleted] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(
@@ -59,6 +65,8 @@ export function MeetingDetail({ meeting }: { meeting: Meeting }) {
                 meeting={meeting}
                 comments={comments}
                 onAddComment={addComment}
+                focusSegmentId={focusSegmentId}
+                highlightTerm={searchTerm}
               />
             ) : null}
           </div>

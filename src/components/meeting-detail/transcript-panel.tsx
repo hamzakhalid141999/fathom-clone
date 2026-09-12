@@ -65,10 +65,16 @@ export function TranscriptPanel({
   meeting,
   comments,
   onAddComment,
+  focusSegmentId,
+  highlightTerm = "",
 }: {
   meeting: Meeting;
   comments: TranscriptComment[];
   onAddComment: (segmentId: string, text: string, timestampMs: number) => void;
+  /** Segment to scroll to and flash, set when arriving from search. */
+  focusSegmentId?: string | null;
+  /** Marked inside every segment even when the panel's own filter is empty. */
+  highlightTerm?: string;
 }) {
   const { currentMs, seek, play } = usePlayback();
   const [query, setQuery] = useState("");
@@ -83,6 +89,25 @@ export function TranscriptPanel({
   const [clipFrozen, setClipFrozen] = useState(false);
   const clipFrozenRef = useRef(false);
   clipFrozenRef.current = clipFrozen;
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const segmentRefs = useRef(new Map<string, HTMLDivElement | null>());
+
+  useEffect(() => {
+    if (!focusSegmentId) return;
+
+    const frame = requestAnimationFrame(() => {
+      segmentRefs.current
+        .get(focusSegmentId)
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+      setFlashId(focusSegmentId);
+    });
+    const timer = window.setTimeout(() => setFlashId(null), 2600);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [focusSegmentId]);
 
   /** Derives a clip candidate from the current DOM selection inside the transcript. */
   const readSelection = useCallback(() => {
@@ -244,6 +269,9 @@ export function TranscriptPanel({
                   return (
                     <div
                       key={segment.id}
+                      ref={(node) => {
+                        segmentRefs.current.set(segment.id, node);
+                      }}
                       className="relative"
                       onMouseEnter={() => setHoveredId(segment.id)}
                       onMouseLeave={() => setHoveredId(null)}
@@ -263,7 +291,11 @@ export function TranscriptPanel({
                             play();
                           }
                         }}
-                        className="-mx-3 flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 outline-none transition-colors hover:bg-bg-hover"
+                        className={cn(
+                          "-mx-3 flex cursor-pointer items-start gap-2 rounded-lg px-3 py-2 outline-none transition-colors duration-500 hover:bg-bg-hover",
+                          flashId === segment.id &&
+                            "bg-accent/10 ring-1 ring-accent hover:bg-accent/10"
+                        )}
                       >
                         <p
                           data-segment-id={segment.id}
@@ -272,7 +304,7 @@ export function TranscriptPanel({
                             isActive ? "text-accent" : "text-text-muted"
                           )}
                         >
-                          {highlight(segment.text, query)}
+                          {highlight(segment.text, query || highlightTerm)}
                         </p>
 
                         <div
