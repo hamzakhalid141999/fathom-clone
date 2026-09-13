@@ -1,3 +1,4 @@
+import { GetStartedLink } from "@/components/onboarding/get-started-link";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -25,12 +26,9 @@ export function HeroNav() {
         >
           Log in
         </Link>
-        <Link
-          href="/onboarding"
-          className="rounded-full border border-[#56bbf9] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-[#56bbf9] transition-colors hover:bg-[#56bbf9] hover:text-black lg:px-5 lg:text-[12px]"
-        >
+        <GetStartedLink className="rounded-full border border-[#56bbf9] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.08em] text-[#56bbf9] transition-colors hover:bg-[#56bbf9] hover:text-black lg:px-5 lg:text-[12px]">
           Get started
-        </Link>
+        </GetStartedLink>
       </nav>
     </header>
   );

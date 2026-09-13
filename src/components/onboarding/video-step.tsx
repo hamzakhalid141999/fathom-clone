@@ -27,6 +27,8 @@ export function VideoStep({
     video.currentTime = 0;
     setProgress(0);
     setPaused(true);
+    // Prefer a warm cache from earlier preloading.
+    video.load();
   }, [src]);
 
   useEffect(() => {
@@ -34,7 +36,7 @@ export function VideoStep({
     if (!video || !startPlayback) return;
     const play = video.play();
     if (play) play.catch(() => setPaused(true));
-  }, [startPlayback]);
+  }, [startPlayback, src]);
 
   function togglePlay() {
     const video = videoRef.current;

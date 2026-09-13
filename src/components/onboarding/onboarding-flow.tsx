@@ -4,6 +4,12 @@ import { CaptureStep } from "@/components/onboarding/capture-step";
 import { ConsentStep } from "@/components/onboarding/consent-step";
 import { VideoStep } from "@/components/onboarding/video-step";
 import { Starfield } from "@/components/marketing/starfield";
+import {
+  hasCompletedOnboarding,
+  markOnboardingComplete,
+  ONBOARDING_VIDEOS,
+  preloadOnboardingVideos,
+} from "@/lib/onboarding";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -33,6 +39,7 @@ const variants = {
 
 export function OnboardingFlow() {
   const router = useRouter();
+  const [allowed, setAllowed] = useState(false);
   const [step, setStep] = useState<Step>("consent");
   const [direction, setDirection] = useState(1);
   const [leaving, setLeaving] = useState(false);
@@ -41,6 +48,12 @@ export function OnboardingFlow() {
   const [awaitingReveal, setAwaitingReveal] = useState(false);
 
   useEffect(() => {
+    if (hasCompletedOnboarding()) {
+      router.replace("/meetings");
+      return;
+    }
+    preloadOnboardingVideos();
+    setAllowed(true);
     router.prefetch("/meetings");
   }, [router]);
 
@@ -66,14 +79,26 @@ export function OnboardingFlow() {
 
   /** Fades the screen out before handing off to the app. */
   function finish() {
+    markOnboardingComplete();
     setDirection(1);
     setLeaving(true);
     window.setTimeout(() => router.push("/meetings"), 460);
   }
 
+  if (!allowed) {
+    return <div className="min-h-dvh bg-black" />;
+  }
+
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-black px-4 py-8 lg:px-6 lg:py-10">
       <Starfield />
+
+      {/* Keep both clips in the HTTP/media cache while earlier steps are shown. */}
+      <div className="pointer-events-none absolute h-0 w-0 overflow-hidden opacity-0" aria-hidden>
+        {ONBOARDING_VIDEOS.map((src) => (
+          <video key={src} src={src} preload="auto" muted playsInline />
+        ))}
+      </div>
 
       <div
         aria-hidden
@@ -99,7 +124,7 @@ export function OnboardingFlow() {
 
               {step === "video-1" ? (
                 <VideoStep
-                  src="/assets/onboarding/onboarding-1.mov"
+                  src={ONBOARDING_VIDEOS[0]}
                   startPlayback={videoReady}
                   onDone={() => go("capture")}
                   onBack={() => go("consent")}
@@ -115,7 +140,7 @@ export function OnboardingFlow() {
 
               {step === "video-2" ? (
                 <VideoStep
-                  src="/assets/onboarding/onboarding-2.mov"
+                  src={ONBOARDING_VIDEOS[1]}
                   startPlayback={videoReady}
                   onDone={finish}
                   onBack={() => go("capture")}

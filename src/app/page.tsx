@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/marketing/hero-section";
+import { OnboardingVideoPreloader } from "@/components/onboarding/onboarding-video-preloader";
 import { Sora } from "next/font/google";
 
 const sora = Sora({
@@ -10,6 +11,7 @@ const sora = Sora({
 export default function HomePage() {
   return (
     <div className={sora.className}>
+      <OnboardingVideoPreloader />
       <HeroSection />
     </div>
   );

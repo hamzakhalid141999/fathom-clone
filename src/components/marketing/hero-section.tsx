@@ -1,8 +1,8 @@
+import { GetStartedLink } from "@/components/onboarding/get-started-link";
 import { HeroNav } from "@/components/marketing/hero-nav";
 import { Starfield } from "@/components/marketing/starfield";
 import { Lock } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 const COMPLIANCE = ["SOC 2 Type II", "GDPR", "HIPAA Compliant", "SSO / SCIM"];
 
@@ -27,12 +27,11 @@ export function HeroSection() {
               <span className="font-medium text-white">Now available bot-free.</span>
             </p>
 
-            <Link
-              href="/onboarding"
+            <GetStartedLink
               className="mt-8 inline-flex h-12 items-center rounded-full bg-[#56bbf9] px-7 text-[13px] font-medium uppercase tracking-[0.06em] text-[#04121c] transition-colors hover:bg-[#7ccbfb] lg:mt-9 lg:text-[15px]"
             >
               Get started - free forever
-            </Link>
+            </GetStartedLink>
 
             <div className="mt-7 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-white/55 lg:mt-8 lg:text-[13px]">
               <Lock className="h-3 w-3" aria-hidden />
